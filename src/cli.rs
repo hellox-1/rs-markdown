@@ -22,7 +22,7 @@ use ratatui::{
 use crate::{images::ImageCache, markdown::render_markdown, viewer};
 
 pub fn run() -> Result<()> {
-    let matches = Command::new("rs-markdown")
+    let matches = Command::new("rmd")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Read Markdown files in your terminal")
         .arg(

@@ -1,4 +1,5 @@
 mod cli;
+mod html;
 mod images;
 mod markdown;
 mod syntax;
