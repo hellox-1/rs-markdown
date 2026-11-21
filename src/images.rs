@@ -24,11 +24,12 @@ pub(crate) struct ImageCache {
 }
 
 impl ImageCache {
-    pub(crate) fn render(
+    pub(crate) fn render_sized(
         &mut self,
         source: &str,
         base_dir: &Path,
         width: usize,
+        size: Option<(u32, Option<u32>)>,
     ) -> Result<Vec<Line<'static>>> {
         let key = (base_dir.to_owned(), source.to_owned());
         if !self.decoded.contains_key(&key) {
@@ -37,7 +38,7 @@ impl ImageCache {
         }
 
         match self.decoded.get(&key) {
-            Some(Ok(image)) => Ok(to_terminal_lines(image, width)),
+            Some(Ok(image)) => Ok(to_terminal_lines(image, width, size)),
             Some(Err(error)) => Err(anyhow!("{error}")),
             None => unreachable!("image cache entry was inserted"),
         }
@@ -142,9 +143,22 @@ fn decode_svg(bytes: &[u8], max_width: u32, max_height: u32) -> Result<DynamicIm
         .context("could not decode rasterized SVG")
 }
 
-fn to_terminal_lines(image: &DynamicImage, width: usize) -> Vec<Line<'static>> {
-    let width = (width.clamp(1, MAX_PREVIEW_WIDTH as usize) as u32).min(image.width());
-    let height = MAX_PREVIEW_HEIGHT.min(image.height());
+fn to_terminal_lines(
+    image: &DynamicImage,
+    width: usize,
+    requested_size: Option<(u32, Option<u32>)>,
+) -> Vec<Line<'static>> {
+    let (requested_width, requested_height) =
+        requested_size.unwrap_or((MAX_PREVIEW_WIDTH, Some(MAX_PREVIEW_HEIGHT)));
+    let width = width
+        .clamp(1, MAX_PREVIEW_WIDTH as usize)
+        .min(requested_width.max(1) as usize) as u32;
+    let height = requested_height
+        .unwrap_or(MAX_PREVIEW_HEIGHT)
+        .clamp(1, MAX_PREVIEW_HEIGHT)
+        .min(MAX_PREVIEW_HEIGHT);
+    let height = height.min(image.height());
+    let width = width.min(image.width());
     let image = image.thumbnail(width, height).to_rgba8();
     let mut lines = Vec::with_capacity(image.height().div_ceil(2) as usize);
 
@@ -233,7 +247,9 @@ mod tests {
         let mut cache = ImageCache::default();
         let decoded = load_image("sample.png", &directory).unwrap();
         assert_eq!((decoded.width(), decoded.height()), (2, 2));
-        let lines = cache.render("sample.png", &directory, 60).unwrap();
+        let lines = cache
+            .render_sized("sample.png", &directory, 60, None)
+            .unwrap();
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0].spans[0].content, "▀▀");
         assert_eq!(lines[0].spans[0].style.fg, Some(Color::Rgb(255, 0, 0)));
@@ -253,6 +269,17 @@ mod tests {
                 .iter()
                 .any(|span| span.content.contains("sample preview"))
         }));
+        let sized_lines = crate::markdown::render_markdown(
+            "![small](sample.png =1x1)",
+            60,
+            &directory,
+            &mut cache,
+        );
+        assert!(sized_lines.iter().any(|line| {
+            line.spans
+                .iter()
+                .any(|span| UnicodeWidthStr::width(span.content.as_ref()) == 1)
+        }));
 
         fs::remove_file(image_path).unwrap();
         fs::remove_dir(directory).unwrap();
@@ -269,7 +296,7 @@ mod tests {
         fs::write(&image_path, encoded.into_inner()).unwrap();
 
         let lines = ImageCache::default()
-            .render("wide.png", &directory, 100)
+            .render_sized("wide.png", &directory, 100, None)
             .unwrap();
         let rendered_width = lines[0]
             .spans
@@ -302,7 +329,12 @@ mod tests {
 
         let mut cache = ImageCache::default();
         let lines = cache
-            .render(&format!("http://{address}/sample.png"), Path::new("."), 60)
+            .render_sized(
+                &format!("http://{address}/sample.png"),
+                Path::new("."),
+                60,
+                None,
+            )
             .unwrap();
         server.join().unwrap();
         assert_eq!(lines[0].spans[0].style.fg, Some(Color::Rgb(255, 0, 0)));

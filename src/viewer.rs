@@ -201,7 +201,7 @@ fn draw(frame: &mut Frame<'_>, app: &mut App) {
         .split(frame.area());
 
     let header = Line::from(vec![
-        Span::styled(" rs-markdown ", Style::default().fg(Color::Cyan).bold()),
+        Span::styled(" rmd ", Style::default().fg(Color::Cyan).bold()),
         Span::styled(&app.title, Style::default().add_modifier(Modifier::BOLD)),
     ]);
     frame.render_widget(header, areas[0]);
