@@ -1,7 +1,9 @@
 use ratatui::{
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::Span,
 };
+
+use crate::theme;
 
 pub(crate) fn highlight_code_line(
     source: &str,
@@ -10,15 +12,15 @@ pub(crate) fn highlight_code_line(
 ) -> Vec<Span<'static>> {
     let mut spans = Vec::new();
     let mut index = 0;
-    let base = Style::default().fg(Color::Green);
+    let base = Style::default().fg(theme::TEXT);
     let comment = Style::default()
-        .fg(Color::DarkGray)
+        .fg(theme::MUTED)
         .add_modifier(Modifier::ITALIC);
-    let string = Style::default().fg(Color::Yellow);
+    let string = Style::default().fg(theme::STRING);
     let keyword = Style::default()
-        .fg(Color::Cyan)
+        .fg(theme::KEYWORD)
         .add_modifier(Modifier::BOLD);
-    let number = Style::default().fg(Color::Magenta);
+    let number = Style::default().fg(theme::NUMBER);
     let bytes = source.as_bytes();
 
     while index < bytes.len() {
@@ -190,7 +192,7 @@ mod tests {
         }));
         assert!(
             spans.iter().any(|span| {
-                span.content == r#""hello""# && span.style.fg == Some(Color::Yellow)
+                span.content == r#""hello""# && span.style.fg == Some(theme::STRING)
             })
         );
     }

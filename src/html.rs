@@ -1,5 +1,7 @@
 use ratatui::style::{Color, Modifier, Style};
 
+use crate::theme;
+
 pub(crate) struct Tag {
     pub(crate) name: String,
     pub(crate) closing: bool,
@@ -43,13 +45,13 @@ pub(crate) fn apply_tag_style(name: &str, attributes: &str, style: Style) -> Sty
         "i" | "em" => style.add_modifier(Modifier::ITALIC),
         "u" | "ins" => style.add_modifier(Modifier::UNDERLINED),
         "s" | "strike" | "del" => style.add_modifier(Modifier::CROSSED_OUT),
-        "code" | "tt" => style.fg(Color::LightGreen).bg(Color::DarkGray),
+        "code" | "tt" => style.fg(theme::CODE).bg(theme::CODE_BACKGROUND),
         "small" => style.add_modifier(Modifier::DIM),
         "big" => style.add_modifier(Modifier::BOLD),
         "sup" | "sub" => style.add_modifier(Modifier::DIM),
-        "a" => style.fg(Color::Cyan).add_modifier(Modifier::UNDERLINED),
+        "a" => style.fg(theme::LINK).add_modifier(Modifier::UNDERLINED),
         "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
-            style.fg(Color::Cyan).add_modifier(Modifier::BOLD)
+            style.fg(theme::PRIMARY).add_modifier(Modifier::BOLD)
         }
         "font" => attribute_value(attributes, "color")
             .and_then(parse_color)

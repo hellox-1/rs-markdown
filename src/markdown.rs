@@ -4,13 +4,13 @@ use pulldown_cmark::{
     CodeBlockKind, Event as MarkdownEvent, HeadingLevel, Options, Parser, Tag, TagEnd,
 };
 use ratatui::{
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
 };
 use unicode_width::UnicodeWidthStr;
 
 use crate::html::{apply_tag_style, attribute_value, decode_entities, parse_tag};
-use crate::{images::ImageCache, syntax::highlight_code_line, table::TableBuilder};
+use crate::{images::ImageCache, syntax::highlight_code_line, table::TableBuilder, theme};
 
 #[derive(Default)]
 struct ListState {
@@ -94,7 +94,7 @@ impl<'a> MarkdownRenderer<'a> {
                 MarkdownEvent::InlineMath(math) => self.push_text(&math),
                 MarkdownEvent::DisplayMath(math) => {
                     self.ensure_block_gap();
-                    self.push_styled_text(&math, Style::default().fg(Color::Magenta));
+                    self.push_styled_text(&math, Style::default().fg(theme::HIGHLIGHT));
                     self.finish_line();
                     self.add_blank_line();
                 }
@@ -107,7 +107,7 @@ impl<'a> MarkdownRenderer<'a> {
                     self.ensure_block_gap();
                     self.lines.push(Line::from(Span::styled(
                         "─".repeat(self.width.min(72)),
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(theme::BORDER),
                     )));
                     self.add_blank_line();
                 }
@@ -116,7 +116,7 @@ impl<'a> MarkdownRenderer<'a> {
                     self.push_styled_text(
                         marker,
                         Style::default()
-                            .fg(Color::Yellow)
+                            .fg(theme::ACCENT)
                             .add_modifier(Modifier::BOLD),
                     );
                 }
@@ -142,9 +142,9 @@ impl<'a> MarkdownRenderer<'a> {
             Tag::Heading { level, .. } => {
                 self.ensure_block_gap();
                 let color = match heading_number(level) {
-                    1 => Color::Cyan,
-                    2 => Color::Blue,
-                    _ => Color::LightBlue,
+                    1 => theme::PRIMARY,
+                    2 => theme::ACCENT,
+                    _ => theme::HIGHLIGHT,
                 };
                 self.style = self.style.fg(color).add_modifier(Modifier::BOLD);
             }
@@ -153,12 +153,12 @@ impl<'a> MarkdownRenderer<'a> {
                     self.ensure_block_gap();
                 }
                 self.quote_depth += 1;
-                self.style = self.style.fg(Color::White).add_modifier(Modifier::ITALIC);
+                self.style = self.style.fg(theme::TEXT).add_modifier(Modifier::ITALIC);
                 self.add_quote_prefix();
             }
             Tag::CodeBlock(kind) => {
                 self.ensure_block_gap();
-                self.style = self.style.fg(Color::Green);
+                self.style = self.style.fg(theme::CODE);
                 if let CodeBlockKind::Fenced(language) = kind
                     && !language.is_empty()
                 {
@@ -173,7 +173,7 @@ impl<'a> MarkdownRenderer<'a> {
                     } else {
                         self.push_styled_text(
                             &format!(" {language} "),
-                            Style::default().fg(Color::DarkGray),
+                            Style::default().fg(theme::MUTED),
                         );
                         self.finish_line();
                     }
@@ -209,7 +209,7 @@ impl<'a> MarkdownRenderer<'a> {
                 self.push_styled_text(
                     &marker,
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(theme::ACCENT)
                         .add_modifier(Modifier::BOLD),
                 );
             }
@@ -219,7 +219,7 @@ impl<'a> MarkdownRenderer<'a> {
             Tag::Link { .. } => {
                 self.style = self
                     .style
-                    .fg(Color::Cyan)
+                    .fg(theme::LINK)
                     .add_modifier(Modifier::UNDERLINED);
             }
             Tag::Image {
@@ -332,9 +332,9 @@ impl<'a> MarkdownRenderer<'a> {
             for (index, line) in code_lines.iter().enumerate() {
                 if language == "suggestion" {
                     let style = match line.as_bytes().first() {
-                        Some(b'+') => Style::default().fg(Color::Green),
-                        Some(b'-') => Style::default().fg(Color::Red),
-                        _ => Style::default().fg(Color::DarkGray),
+                        Some(b'+') => Style::default().fg(theme::STRING),
+                        Some(b'-') => Style::default().fg(theme::ERROR),
+                        _ => Style::default().fg(theme::MUTED),
                     };
                     self.push_styled_text(line, style);
                 } else {
@@ -361,7 +361,7 @@ impl<'a> MarkdownRenderer<'a> {
                     self.ensure_block_gap();
                     self.push_styled_text(
                         "Child pages are available in Azure DevOps Wiki.",
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(theme::MUTED),
                     );
                     self.finish_line();
                     self.add_blank_line();
@@ -434,7 +434,7 @@ impl<'a> MarkdownRenderer<'a> {
                 self.push_styled_text(
                     identity,
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::LINK)
                         .add_modifier(Modifier::BOLD),
                 );
                 remaining = &remaining[end + 1..];
@@ -456,7 +456,7 @@ impl<'a> MarkdownRenderer<'a> {
                 self.push_styled_text(
                     &tag.name,
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::LINK)
                         .add_modifier(Modifier::BOLD),
                 );
                 continue;
@@ -469,7 +469,7 @@ impl<'a> MarkdownRenderer<'a> {
                     {
                         self.push_styled_text(
                             &format!("[embedded video: {src}]"),
-                            Style::default().fg(Color::Cyan),
+                            Style::default().fg(theme::LINK),
                         );
                     }
                     if !tag.self_closing {
@@ -482,7 +482,7 @@ impl<'a> MarkdownRenderer<'a> {
                 if let Some(src) = attribute_value(&tag.attributes, "src") {
                     self.push_styled_text(
                         &format!("[video: {src}]"),
-                        Style::default().fg(Color::Cyan),
+                        Style::default().fg(theme::LINK),
                     );
                 }
                 if !tag.self_closing {
@@ -518,12 +518,12 @@ impl<'a> MarkdownRenderer<'a> {
                 continue;
             }
             if tag.name == "details" && !tag.closing {
-                self.push_styled_text("▸ ", Style::default().fg(Color::Yellow));
+                self.push_styled_text("▸ ", Style::default().fg(theme::ACCENT));
             }
             if matches!(tag.name.as_str(), "sup" | "sub") && !tag.closing {
                 self.push_styled_text(
                     if tag.name == "sup" { "^" } else { "_" },
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme::MUTED),
                 );
             }
 
@@ -555,7 +555,7 @@ impl<'a> MarkdownRenderer<'a> {
             let indent = "  ".repeat(level.saturating_sub(1));
             self.push_styled_text(
                 &format!("{indent}• {heading}"),
-                Style::default().fg(Color::Cyan),
+                Style::default().fg(theme::LINK),
             );
             self.finish_line();
         }
@@ -566,7 +566,7 @@ impl<'a> MarkdownRenderer<'a> {
         if let Some(image) = self.image.as_mut() {
             image.alt.push_str(code);
         } else {
-            let style = self.style.fg(Color::LightGreen).bg(Color::DarkGray);
+            let style = self.style.fg(theme::CODE).bg(theme::CODE_BACKGROUND);
             self.push_styled_text(code, style);
         }
     }
@@ -586,7 +586,7 @@ impl<'a> MarkdownRenderer<'a> {
                     self.lines.push(Line::from(Span::styled(
                         format!("  {}", image.alt),
                         Style::default()
-                            .fg(Color::DarkGray)
+                            .fg(theme::MUTED)
                             .add_modifier(Modifier::ITALIC),
                     )));
                 }
@@ -600,7 +600,7 @@ impl<'a> MarkdownRenderer<'a> {
                         format!(" ({})", image.alt)
                     }
                 ),
-                Style::default().fg(Color::LightRed),
+                Style::default().fg(theme::ERROR),
             ))),
         }
         self.add_blank_line();
@@ -613,18 +613,18 @@ impl<'a> MarkdownRenderer<'a> {
         match mermaid_text::render_with_width(&source, Some(self.width)) {
             Ok(diagram) => {
                 for line in diagram.lines() {
-                    self.push_styled_text(line, Style::default().fg(Color::LightCyan));
+                    self.push_styled_text(line, Style::default().fg(theme::HIGHLIGHT));
                     self.finish_line();
                 }
             }
             Err(error) => {
                 self.push_styled_text(
                     &format!("Mermaid diagram could not render: {error}"),
-                    Style::default().fg(Color::LightRed),
+                    Style::default().fg(theme::ERROR),
                 );
                 self.finish_line();
                 for line in source.lines() {
-                    self.push_styled_text(line, Style::default().fg(Color::DarkGray));
+                    self.push_styled_text(line, Style::default().fg(theme::MUTED));
                     self.finish_line();
                 }
             }
@@ -641,7 +641,7 @@ impl<'a> MarkdownRenderer<'a> {
         if self.current.is_empty() && self.quote_depth > 0 {
             self.current.extend(
                 (0..self.quote_depth)
-                    .map(|_| Span::styled("│ ", Style::default().fg(Color::Yellow))),
+                    .map(|_| Span::styled("│ ", Style::default().fg(theme::QUOTE))),
             );
         }
     }
@@ -688,7 +688,7 @@ pub(crate) fn render_markdown(
         return vec![Line::from(Span::styled(
             "This file is empty.",
             Style::default()
-                .fg(Color::DarkGray)
+                .fg(theme::MUTED)
                 .add_modifier(Modifier::ITALIC),
         ))];
     }
@@ -698,7 +698,7 @@ pub(crate) fn render_markdown(
         vec![Line::from(Span::styled(
             "This file is empty.",
             Style::default()
-                .fg(Color::DarkGray)
+                .fg(theme::MUTED)
                 .add_modifier(Modifier::ITALIC),
         ))]
     } else {
