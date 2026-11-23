@@ -22,8 +22,12 @@ another Rust-supported target, install its Rust target and run
 
 The viewer supports headings, inline formatting, links, nested and task lists,
 blockquotes, code blocks, tables, and horizontal rules. Use the arrow keys or
-`j`/`k` to scroll, `PageUp`/`PageDown` to move by a page, `Home`/`End` to jump,
-`/` to search, `n`/`N` to navigate matches, and `q` or `Esc` to quit.
+`j`/`k` to scroll, `PageUp`/`PageDown` to move by a page, `Home`/`End` to jump.
+Press `/` to search as you type; matches are highlighted in yellow. Press
+`Enter` to jump through matches, `Esc` to finish searching, and `q` to quit.
+
+The terminal UI uses a Rust-inspired palette: rusty orange accents, warm text,
+muted copper borders, and complementary colors for code and links.
 
 ## Azure DevOps Markdown
 

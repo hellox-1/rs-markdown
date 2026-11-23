@@ -1,9 +1,11 @@
 use pulldown_cmark::Alignment;
 use ratatui::{
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
 };
 use unicode_width::UnicodeWidthStr;
+
+use crate::theme;
 
 pub(crate) struct TableBuilder {
     alignments: Vec<Alignment>,
@@ -100,7 +102,7 @@ impl TableBuilder {
                             .collect::<Vec<_>>()
                             .join("┼")
                     ),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme::BORDER),
                 )));
             }
         }
